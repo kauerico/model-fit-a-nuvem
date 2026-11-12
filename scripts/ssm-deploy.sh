@@ -31,7 +31,8 @@ if [ "$ACTION" = info ]; then
   exit 0
 fi
 
-PRE='set -euo pipefail; export KUBECONFIG=/etc/rancher/k3s/k3s.yaml'
+# O SSM executa com /bin/sh (no Ubuntu é o dash): nada de recursos só do bash
+PRE='set -eu; export KUBECONFIG=/etc/rancher/k3s/k3s.yaml'
 POS='kubectl get pods -l app.kubernetes.io/name=fake-news -o wide'
 
 case "$ACTION" in
@@ -63,6 +64,9 @@ helm upgrade --install fake-news /tmp/chart/fake-news \\
 $POS" ;;
   rollback)
     SCRIPT="$PRE
+if [ \$(helm history fake-news --max 2 -o yaml 2>/dev/null | grep -c 'revision:') -lt 2 ]; then
+  echo 'Não há versão anterior para voltar (primeiro deploy).'; exit 0
+fi
 helm rollback fake-news --wait --timeout 5m
 helm history fake-news --max 3
 $POS" ;;
