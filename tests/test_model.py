@@ -15,7 +15,7 @@ def test_pipeline_learns_toy_data():
     assert pipe.predict(["compartilhe urgente"])[0] == "falsa"
 
 
-@pytest.mark.skipif(not ARTIFACT.exists(), reason="rode `make train` antes")
+@pytest.mark.skipif(not ARTIFACT.exists(), reason="rode `python -m model.train` antes")
 def test_artifact_has_metadata():
     bundle = joblib.load(ARTIFACT)
     meta = bundle["metadata"]

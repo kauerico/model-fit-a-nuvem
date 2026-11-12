@@ -1,7 +1,7 @@
 """Testes da API (fase 2).
 
 Usam um modelo de brinquedo salvo num diretório temporário, então rodam
-sem `make train` e sem baixar o corpus.
+sem treinar o modelo de verdade e sem baixar o corpus.
 """
 
 import importlib

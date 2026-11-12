@@ -1,6 +1,6 @@
 """Treina o detector de notícias falsas: TF-IDF + regressão logística.
 
-Uso: python -m model.train   (ou `make train`)
+Uso: python -m model.train
 
 Gera:
   model/artifacts/fake_news.joblib  -> Pipeline treinado + metadados

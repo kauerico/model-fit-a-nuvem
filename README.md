@@ -42,14 +42,15 @@ Helm, Terraform (AWS), GitHub Actions, GHCR e Prometheus.
 
 ## Como rodar
 
-Pré-requisitos locais: `make`, Docker e [uv](https://docs.astral.sh/uv/)
-(ou Python 3.11 instalado).
+O passo a passo completo, do treino à AWS, está em
+**[PROCEDIMENTO.md](PROCEDIMENTO.md)**. O resumo local:
 
 ```bash
-make          # lista os alvos
-make train    # baixa o corpus e treina o modelo (~10 s)
-make test     # cria o .venv com Python 3.11 e roda os testes
-make run      # sobe a API em http://localhost:8000 (docs em /docs)
+uv venv -p 3.11 .venv && source .venv/bin/activate
+uv pip install -r requirements-dev.txt
+python -m model.train            # baixa o corpus e treina (~10 s)
+pytest -q                        # testes
+uvicorn app.main:app --reload    # API em http://localhost:8000 (docs em /docs)
 ```
 
 Em outro terminal:
@@ -75,9 +76,8 @@ Se o arquivo não existir, a API não inicia.
 ## Docker
 
 ```bash
-make build        # imagem para a arquitetura desta máquina
-make docker-run   # sobe a imagem em http://localhost:8000
-make buildx       # amd64 + arm64 (PUSH=1 publica no GHCR)
+docker build -t fake-news:dev .
+docker run --rm -p 8000:8000 fake-news:dev
 ```
 
 O [`Dockerfile`](Dockerfile) tem dois estágios:
@@ -91,11 +91,24 @@ O [`Dockerfile`](Dockerfile) tem dois estágios:
    código (para aproveitar o cache de camadas), depois a API e o modelo, e
    roda como usuário sem privilégios (uid 10001).
 
-Para construir arm64 numa máquina x86 é preciso do emulador QEMU:
-`docker run --privileged --rm tonistiigi/binfmt --install arm64`.
+O CI constrói a imagem para amd64 e arm64 e a publica no GHCR. Para
+construir as duas localmente numa máquina x86, instale o emulador QEMU
+(`docker run --privileged --rm tonistiigi/binfmt --install arm64`) e rode
+`docker buildx build --platform linux/amd64,linux/arm64 .`.
 
-Os demais alvos (`k3d-up`, `deploy`, `destroy`)
-serão preenchidos nas próximas fases.
+## Na AWS
+
+- **Infraestrutura** ([`terraform/`](terraform/)), aplicada à mão: uma EC2
+  t4g.small (arm64) com k3s em us-east-2, um security group que libera só a
+  NodePort 30080 da API (a 6443 nunca fica exposta), o papel IAM do SSM e um
+  alerta do AWS Budgets. O estado fica num bucket S3.
+- **App** ([`helm/fake-news/`](helm/fake-news/)): Deployment com 2 réplicas,
+  probes em `/health`, requests/limits pequenos e Service NodePort.
+- **CI/CD** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): a cada
+  push na `main`, testa, constrói a imagem (amd64 e arm64), publica no GHCR
+  e, se a EC2 estiver no ar, roda o `helm upgrade` via AWS SSM (sem SSH e
+  sem porta extra). Depois verifica a API e faz rollback se ela falhar. As
+  credenciais ficam em GitHub Secrets.
 
 ## Dados
 
@@ -106,7 +119,7 @@ texto maior é cortado para o tamanho do menor, então o modelo não acerta só
 porque notícias falsas costumam ser mais curtas.
 
 - **Licença:** o repositório do corpus não declara licença; os autores pedem
-  apenas citação. Por isso **não redistribuímos os dados**: `make train`
+  apenas citação. Por isso **não redistribuímos os dados**: `python -m model.train`
   baixa o corpus da fonte, fixado no commit `780f551`, para `model/data/`,
   pasta ignorada pelo git.
 - **Sem dados pessoais:** o corpus traz só notícias públicas, sem dados de
@@ -140,18 +153,21 @@ textos de outras épocas ou de outros estilos.
 
 ## Custos
 
-Uma única instância EC2 pequena com k3s, coberta pelos créditos da conta.
-Não usamos EKS. `make destroy` apagará tudo ao final (fase 9).
+Uma única EC2 t4g.small com k3s custa cerca de US$ 0,55 por dia ligada
+(instância, disco e IP público), coberta pelos créditos da conta. Não usamos
+EKS: só o plano de controle dele custaria cerca de US$ 73 por mês. O AWS
+Budgets avisa por e-mail se o gasto do mês passar de US$ 5. Para apagar tudo,
+rode `terraform destroy` (veja o checklist no PROCEDIMENTO.md).
 
 ## Andamento
 
-- [x] Fase 0: estrutura, README e Makefile
+- [x] Fase 0: estrutura e README
 - [x] Fase 1: treino do modelo
 - [x] Fase 2: API FastAPI
 - [x] Fase 3: Docker
-- [ ] Fase 4: Kubernetes local (k3d + Helm)
-- [ ] Fase 5: Terraform (EC2 + k3s)
+- [ ] Fase 4: Kubernetes local (k3d), pulada: fomos direto para a AWS
+- [x] Fase 5: Terraform (EC2 + k3s), escrito, falta aplicar
 - [ ] Fase 6: deploy na EC2
-- [ ] Fase 7: CI/CD
+- [x] Fase 7: CI/CD (teste, build e publicação validados; deploy pendente da EC2)
 - [ ] Fase 8: observabilidade
 - [ ] Fase 9: fechamento

@@ -6,12 +6,13 @@
 #   scripts/ssm-deploy.sh wait              # espera o k3s ficar pronto
 #   scripts/ssm-deploy.sh deploy <tag>      # helm upgrade com a imagem <tag>
 #   scripts/ssm-deploy.sh rollback          # volta para a versão anterior
+#   scripts/ssm-deploy.sh status            # kubectl get nodes,pods,svc na EC2
 #
 # Precisa de AWS_REGION e credenciais AWS. A instância é encontrada pela tag
 # Name=fake-news-k3s (criada pelo Terraform).
 set -euo pipefail
 
-ACTION=${1:?uso: $0 info | wait | deploy <tag> | rollback}
+ACTION=${1:?uso: $0 info | wait | deploy <tag> | rollback | status}
 TAG=${2:-}
 : "${AWS_REGION:?defina AWS_REGION}"
 cd "$(dirname "$0")/.."
@@ -20,7 +21,7 @@ read -r INSTANCE_ID PUBLIC_IP < <(aws ec2 describe-instances --region "$AWS_REGI
   --filters Name=tag:Name,Values=fake-news-k3s Name=instance-state-name,Values=pending,running \
   --query 'Reservations[0].Instances[0].[InstanceId,PublicIpAddress]' --output text)
 if [ "$INSTANCE_ID" = "None" ]; then
-  echo "Nenhuma EC2 da demo ligada (suba a infra com: make tf-plan && make tf-apply)." >&2
+  echo "Nenhuma EC2 da demo ligada (suba a infra com terraform apply, ver PROCEDIMENTO.md)." >&2
   exit 3
 fi
 
@@ -65,6 +66,10 @@ $POS" ;;
 helm rollback fake-news --wait --timeout 5m
 helm history fake-news --max 3
 $POS" ;;
+  status)
+    SCRIPT="$PRE
+kubectl get nodes,pods,svc -o wide
+helm list" ;;
   *) echo "ação desconhecida: $ACTION" >&2; exit 2 ;;
 esac
 

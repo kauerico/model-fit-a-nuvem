@@ -1,6 +1,6 @@
 """API do detector de notícias falsas.
 
-Rodar local: make run   (ou: uvicorn app.main:app --reload)
+Rodar local: uvicorn app.main:app --reload
 Documentação interativa: http://localhost:8000/docs
 """
 
