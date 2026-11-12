@@ -47,16 +47,53 @@ Pré-requisitos locais: `make`, Docker e [uv](https://docs.astral.sh/uv/)
 
 ```bash
 make          # lista os alvos
+make train    # baixa o corpus e treina o modelo (~10 s)
 make test     # cria o .venv com Python 3.11 e roda os testes
 ```
 
-Os demais alvos (`train`, `run`, `build`, `k3d-up`, `deploy`, `destroy`)
+Os demais alvos (`run`, `build`, `k3d-up`, `deploy`, `destroy`)
 serão preenchidos nas próximas fases.
 
 ## Dados
 
-Corpus: _a definir na fase 1 (fonte e licença serão registradas aqui)._
-Nenhum dado pessoal é usado.
+Usamos o **[Fake.br Corpus](https://github.com/roneysco/Fake.br-Corpus)**
+(NILC/USP): 7.200 notícias em português, sendo 3.600 falsas e 3.600
+verdadeiras, na versão `size_normalized_texts`. Nessa versão, em cada par o
+texto maior é cortado para o tamanho do menor, então o modelo não acerta só
+porque notícias falsas costumam ser mais curtas.
+
+- **Licença:** o repositório do corpus não declara licença; os autores pedem
+  apenas citação. Por isso **não redistribuímos os dados**: `make train`
+  baixa o corpus da fonte, fixado no commit `780f551`, para `model/data/`,
+  pasta ignorada pelo git.
+- **Sem dados pessoais:** o corpus traz só notícias públicas, sem dados de
+  alunos ou de terceiros (LGPD).
+- **Citação:**
+  - Monteiro R.A., Santos R.L.S., Pardo T.A.S., de Almeida T.A., Ruiz E.E.S.,
+    Vale O.A. (2018). *Contributions to the Study of Fake News in Portuguese:
+    New Corpus and Automatic Detection Results.* PROPOR 2018, LNCS 11122,
+    p. 324–334.
+  - Silva R.M., Santos R.L.S., Almeida T.A., Pardo T.A.S. (2020). *Towards
+    automatically filtering fake news in Portuguese.* Expert Systems with
+    Applications, 146, 113199.
+
+## Modelo
+
+`model/train.py` monta um `Pipeline` do scikit-learn (TF-IDF de palavras e
+pares de palavras + regressão logística), treina com 80% dos dados e avalia
+nos 20% restantes. Ele salva `model/artifacts/fake_news.joblib` com o
+Pipeline e os metadados (versão do modelo, ordem das classes, versão do
+scikit-learn e métricas). As métricas também ficam em
+[`model/metrics.json`](model/metrics.json), que é versionado.
+
+| Métrica (teste, 1.440 notícias) | Valor |
+|---------------------------------|-------|
+| Acurácia                        | 0,921 |
+| F1 (macro)                      | 0,921 |
+
+O modelo aprende **padrões de escrita** desse corpus (vocabulário, tom,
+expressões típicas). Ele não sabe se um fato é verdadeiro e pode errar com
+textos de outras épocas ou de outros estilos.
 
 ## Custos
 
@@ -66,7 +103,7 @@ Não usamos EKS. `make destroy` apagará tudo ao final (fase 9).
 ## Andamento
 
 - [x] Fase 0: estrutura, README e Makefile
-- [ ] Fase 1: treino do modelo
+- [x] Fase 1: treino do modelo
 - [ ] Fase 2: API FastAPI
 - [ ] Fase 3: Docker
 - [ ] Fase 4: Kubernetes local (k3d + Helm)

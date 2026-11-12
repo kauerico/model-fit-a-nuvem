@@ -22,14 +22,16 @@ venv: $(VENV)/.ok ## Cria o ambiente virtual com Python 3.11
 # Usa uv se estiver instalado (baixa o Python 3.11 sozinho); senão, python3.11.
 $(VENV)/.ok: requirements.txt
 	@if command -v uv >/dev/null; then \
-		uv venv -q -p $(PYTHON_VERSION) $(VENV) && uv pip install -q -p $(PY) -r requirements.txt; \
+		[ -x $(PY) ] || uv venv -q -p $(PYTHON_VERSION) $(VENV); \
+		uv pip install -q -p $(PY) -r requirements.txt; \
 	else \
-		python$(PYTHON_VERSION) -m venv $(VENV) && $(PY) -m pip install -q -r requirements.txt; \
+		[ -x $(PY) ] || python$(PYTHON_VERSION) -m venv $(VENV); \
+		$(PY) -m pip install -q -r requirements.txt; \
 	fi
 	@touch $@
 
 train: venv ## Fase 1: treina o modelo e salva o .joblib
-	@echo "TODO (fase 1): treino do modelo"
+	$(PY) -m model.train
 
 test: venv ## Roda os testes com pytest
 	$(PY) -m pytest -q

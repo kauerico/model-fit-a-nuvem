@@ -1,0 +1,16 @@
+{
+  "model_version": "1.0.0",
+  "classes": [
+    "falsa",
+    "verdadeira"
+  ],
+  "sklearn_version": "1.9.1",
+  "metrics": {
+    "accuracy": 0.9208,
+    "f1_macro": 0.9208,
+    "n_train": 5760,
+    "n_test": 1440
+  },
+  "corpus": "Fake.br Corpus (size_normalized_texts) @ 780f551",
+  "trained_at": "2026-11-12T03:35:05+00:00"
+}

@@ -1,2 +1,9 @@
-# Versões fixadas na fase 1 (treino) e fase 2 (API).
+# Versões fixadas para o treino e a API carregarem o mesmo modelo.
+# (um .joblib só é confiável com a MESMA versão do scikit-learn)
+scikit-learn==1.9.1
+joblib==1.6.0
+numpy==2.4.6
+scipy==1.17.1
+
+# Testes
 pytest==8.3.3
