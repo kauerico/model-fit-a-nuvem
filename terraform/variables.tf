@@ -1,13 +1,13 @@
 variable "region" {
-  description = "Região da AWS"
+  description = "Região da AWS (nesta conta, a organização só libera EC2 em us-east-2)"
   type        = string
-  default     = "us-east-1"
+  default     = "us-east-2"
 }
 
 variable "aws_profile" {
-  description = "Perfil do AWS CLI (configurado com `aws configure sso`)"
+  description = "Perfil do AWS CLI (o `aws login` grava no perfil default)"
   type        = string
-  default     = "cefet"
+  default     = "default"
 }
 
 variable "instance_type" {
@@ -52,7 +52,7 @@ variable "helm_version" {
 }
 
 variable "github_repo" {
-  description = "Repositório (dono/nome) cujo GitHub Actions pode implantar"
+  description = "Repositório (dono/nome) que recebe os Secrets de deploy"
   type        = string
   default     = "kauerico/model-fit-a-nuvem"
 }

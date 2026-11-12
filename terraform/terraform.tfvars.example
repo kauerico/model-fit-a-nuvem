@@ -3,6 +3,6 @@ my_ip_cidr   = "203.0.113.10/32" # curl -s https://checkip.amazonaws.com
 budget_email = "voce@exemplo.com"
 
 # Opcionais (valores padrão em variables.tf)
-# region        = "us-east-1"
+# region        = "us-east-2"
 # instance_type = "t4g.small"
-# aws_profile   = "cefet"
+# aws_profile   = "default"

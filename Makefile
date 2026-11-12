@@ -61,8 +61,8 @@ deploy: ## Fase 4/6: instala o chart Helm no cluster atual
 
 # ---------- AWS ----------
 TF          := terraform -chdir=terraform
-AWS_PROFILE ?= cefet
-AWS_REGION  ?= us-east-1
+AWS_PROFILE ?= default
+AWS_REGION  ?= us-east-2
 export AWS_PROFILE AWS_REGION
 
 # Tag da imagem no GHCR = SHA do commit (é o que o CI publica)

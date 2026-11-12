@@ -11,9 +11,15 @@ output "instance_id" {
   value       = aws_instance.k3s.id
 }
 
-output "github_deploy_role_arn" {
-  description = "GitHub Secret AWS_ROLE_ARN"
-  value       = aws_iam_role.github_deploy.arn
+output "github_access_key_id" {
+  description = "GitHub Secret AWS_ACCESS_KEY_ID"
+  value       = aws_iam_access_key.github_deploy.id
+}
+
+output "github_secret_access_key" {
+  description = "GitHub Secret AWS_SECRET_ACCESS_KEY (terraform output -raw ...)"
+  value       = aws_iam_access_key.github_deploy.secret
+  sensitive   = true
 }
 
 output "ssh" {
