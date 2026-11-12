@@ -127,6 +127,37 @@ curl http://<IP>:30080/predict -H 'Content-Type: application/json' \
 
 Se um deploy der problema: `scripts/ssm-deploy.sh rollback`.
 
+### Métricas e Prometheus
+
+As métricas da API ficam abertas na mesma porta:
+
+```bash
+curl http://<IP>:30080/metrics
+```
+
+A interface do Prometheus **não** fica exposta na internet. Para abri-la,
+crie um túnel pelo SSM. É preciso o
+[Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
+do AWS CLI.
+
+```bash
+aws ssm start-session --target <ID-DA-EC2> \
+  --document-name AWS-StartPortForwardingSession \
+  --parameters '{"portNumber":["30090"],"localPortNumber":["9090"]}'
+```
+
+Com o túnel aberto, acesse http://localhost:9090. As consultas para a
+demonstração estão em [docs/observabilidade.md](docs/observabilidade.md).
+
+Para gerar tráfego e ver os gráficos se mexerem:
+
+```bash
+for i in $(seq 50); do
+  curl -s http://<IP>:30080/predict -H 'Content-Type: application/json' \
+       -d '{"texto": "URGENTE: compartilhe antes que apaguem!"}' > /dev/null
+done
+```
+
 ## 10. Derrubar tudo (depois do seminário)
 
 ```bash

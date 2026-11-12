@@ -19,6 +19,11 @@ spec:
     metadata:
       labels:
         {{- include "fake-news.labels" . | nindent 8 }}
+      # O Prometheus descobre sozinho os pods com estas anotações
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.service.targetPort }}"
+        prometheus.io/path: /metrics
     spec:
       securityContext:
         runAsNonRoot: true

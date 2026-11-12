@@ -22,3 +22,19 @@ resources:
   limits:
     cpu: 500m
     memory: 320Mi
+
+# Prometheus mínimo (sem Grafana), no mesmo namespace da API.
+# Não é exposto na internet: acesse por túnel (veja PROCEDIMENTO.md).
+prometheus:
+  enabled: false
+  image: prom/prometheus:v3.16.0
+  nodePort: 30090      # fechada no security group; só pelo túnel do SSM
+  retention: 2d
+  scrapeInterval: 15s
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi

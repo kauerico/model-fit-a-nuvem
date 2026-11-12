@@ -2,6 +2,7 @@
 
 Rodar local: uvicorn app.main:app --reload
 Documentação interativa: http://localhost:8000/docs
+Métricas Prometheus: http://localhost:8000/metrics
 """
 
 import os
@@ -9,8 +10,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import joblib
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.metrics import CONFIDENCE, MetricsMiddleware
 from app.schemas import HealthResponse, PredictRequest, PredictResponse
 
 DEFAULT_MODEL = Path(__file__).parent.parent / "model" / "artifacts" / "fake_news.joblib"
@@ -32,6 +35,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Detector de notícias falsas (demo)", version="1.0.0", lifespan=lifespan)
+app.add_middleware(MetricsMiddleware)  # mede todas as requisições
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics() -> Response:
+    # Formato texto que o Prometheus lê a cada "scrape"
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -46,6 +56,7 @@ def predict(req: PredictRequest) -> PredictResponse:
     probs = pipeline.predict_proba([req.texto])[0]
     por_classe = {c: round(float(p), 4) for c, p in zip(pipeline.classes_, probs)}
     classe = max(por_classe, key=por_classe.get)
+    CONFIDENCE.labels(classe).observe(por_classe[classe])
     return PredictResponse(
         classe=classe,
         confianca=por_classe[classe],

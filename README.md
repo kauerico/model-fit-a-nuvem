@@ -67,6 +67,7 @@ curl localhost:8000/predict -H 'Content-Type: application/json' \
 |-----------------|-----------------------------------------------------------------|
 | `POST /predict` | recebe `{"texto": "..."}` (de 1 a 10.000 caracteres) e devolve `classe`, `confianca`, `probabilidades`, `versao_modelo` e um `aviso` |
 | `GET /health`   | `{"status": "ok", ...}` quando o modelo está carregado           |
+| `GET /metrics`  | métricas Prometheus: requisições, erros, latência e confiança ([detalhes](docs/observabilidade.md)) |
 | `GET /docs`     | documentação interativa gerada pelo FastAPI                      |
 
 Entrada inválida (texto ausente, vazio, só espaços ou longo demais)
@@ -104,6 +105,10 @@ construir as duas localmente numa máquina x86, instale o emulador QEMU
   alerta do AWS Budgets. O estado fica num bucket S3.
 - **App** ([`helm/fake-news/`](helm/fake-news/)): Deployment com 2 réplicas,
   probes em `/health`, requests/limits pequenos e Service NodePort.
+- **Observabilidade:** um Prometheus mínimo no cluster coleta o `/metrics`
+  de cada réplica. Ele não fica exposto na internet; o acesso é por túnel do
+  SSM. O equivalente gerenciado na AWS (CloudWatch) está descrito em
+  [docs/observabilidade.md](docs/observabilidade.md).
 - **CI/CD** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): a cada
   push na `main`, testa, constrói a imagem (amd64 e arm64), publica no GHCR
   e, se a EC2 estiver no ar, roda o `helm upgrade` via AWS SSM (sem SSH e
@@ -169,5 +174,5 @@ rode `terraform destroy` (veja o checklist no PROCEDIMENTO.md).
 - [x] Fase 5: Terraform (EC2 + k3s), escrito, falta aplicar
 - [ ] Fase 6: deploy na EC2
 - [x] Fase 7: CI/CD (teste, build e publicação validados; deploy pendente da EC2)
-- [ ] Fase 8: observabilidade
+- [x] Fase 8: observabilidade (`/metrics` + Prometheus)
 - [ ] Fase 9: fechamento

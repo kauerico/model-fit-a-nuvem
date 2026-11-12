@@ -56,3 +56,16 @@ def test_predict_returns_class_and_confidence(client):
 )
 def test_predict_rejects_invalid_input(client, payload):
     assert client.post("/predict", json=payload).status_code == 422
+
+
+def test_metrics_counts_requests_and_confidence(client):
+    client.post("/predict", json={"texto": "urgente, compartilhe!"})
+    client.post("/predict", json={"texto": ""})  # 422 também é contado
+    r = client.get("/metrics")
+    assert r.status_code == 200
+    body = r.text
+    assert 'http_requests_total{method="POST",path="/predict",status="200"}' in body
+    assert 'http_requests_total{method="POST",path="/predict",status="422"}' in body
+    assert "http_request_duration_seconds_bucket" in body
+    assert 'fake_news_prediction_confidence_count{classe="falsa"}' in body
+    assert 'path="/metrics"' not in body  # o próprio scrape não entra na conta
