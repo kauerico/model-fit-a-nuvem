@@ -11,7 +11,7 @@ IMAGE       ?= ghcr.io/$(IMAGE_OWNER)/model-fit-a-nuvem
 TAG         ?= dev
 
 .DEFAULT_GOAL := help
-.PHONY: help venv train test run build k3d-up deploy destroy clean
+.PHONY: help venv train test run build docker-run buildx k3d-up deploy destroy clean
 
 help: ## Lista os alvos disponíveis
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -20,13 +20,13 @@ help: ## Lista os alvos disponíveis
 venv: $(VENV)/.ok ## Cria o ambiente virtual com Python 3.11
 
 # Usa uv se estiver instalado (baixa o Python 3.11 sozinho); senão, python3.11.
-$(VENV)/.ok: requirements.txt
+$(VENV)/.ok: requirements.txt requirements-dev.txt
 	@if command -v uv >/dev/null; then \
 		[ -x $(PY) ] || uv venv -q -p $(PYTHON_VERSION) $(VENV); \
-		uv pip install -q -p $(PY) -r requirements.txt; \
+		uv pip install -q -p $(PY) -r requirements-dev.txt; \
 	else \
 		[ -x $(PY) ] || python$(PYTHON_VERSION) -m venv $(VENV); \
-		$(PY) -m pip install -q -r requirements.txt; \
+		$(PY) -m pip install -q -r requirements-dev.txt; \
 	fi
 	@touch $@
 
@@ -39,8 +39,18 @@ test: venv ## Roda os testes com pytest
 run: venv ## Sobe a API em http://localhost:8000 (docs em /docs)
 	$(PY) -m uvicorn app.main:app --reload --port 8000
 
-build: ## Fase 3: constrói a imagem Docker
-	@echo "TODO (fase 3): docker build -t $(IMAGE):$(TAG) ."
+PLATFORMS ?= linux/amd64,linux/arm64
+
+build: ## Constrói a imagem para a arquitetura desta máquina
+	docker build -t $(IMAGE):$(TAG) .
+
+docker-run: ## Roda a imagem em http://localhost:8000
+	docker run --rm -p 8000:8000 $(IMAGE):$(TAG)
+
+# Multi-arquitetura (amd64 + arm64). PUSH=1 publica no GHCR (precisa de login).
+buildx: ## Constrói para amd64 e arm64 (PUSH=1 publica no GHCR)
+	docker buildx build --platform $(PLATFORMS) -t $(IMAGE):$(TAG) \
+		$(if $(filter 1,$(PUSH)),--push,) .
 
 k3d-up: ## Fase 4: cria o cluster Kubernetes local (k3d)
 	@echo "TODO (fase 4): k3d cluster create"

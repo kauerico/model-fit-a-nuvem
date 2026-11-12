@@ -1,15 +1,10 @@
-# Versões fixadas para o treino e a API carregarem o mesmo modelo.
-# (um .joblib só é confiável com a MESMA versão do scikit-learn)
+# Dependências da imagem (treino + API). Versões fixadas: um .joblib só é
+# confiável quando carregado com a MESMA versão do scikit-learn que o gerou.
 scikit-learn==1.9.1
 joblib==1.6.0
 numpy==2.4.6
 scipy==1.17.1
 
-# API
 fastapi==0.162.5
 pydantic==2.14.3
 uvicorn==0.54.0
-
-# Testes
-pytest==8.3.3
-httpx2==2.16.0  # usado pelo TestClient do FastAPI

@@ -1,0 +1,4 @@
+# Só para desenvolvimento e CI (não entra na imagem).
+-r requirements.txt
+pytest==8.3.3
+httpx2==2.16.0  # usado pelo TestClient do FastAPI

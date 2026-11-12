@@ -72,7 +72,29 @@ Entrada inválida (texto ausente, vazio, só espaços ou longo demais)
 recebe HTTP 422. O modelo é carregado uma única vez, quando a API sobe.
 Se o arquivo não existir, a API não inicia.
 
-Os demais alvos (`build`, `k3d-up`, `deploy`, `destroy`)
+## Docker
+
+```bash
+make build        # imagem para a arquitetura desta máquina
+make docker-run   # sobe a imagem em http://localhost:8000
+make buildx       # amd64 + arm64 (PUSH=1 publica no GHCR)
+```
+
+O [`Dockerfile`](Dockerfile) tem dois estágios:
+
+1. **treino:** instala as dependências e roda `model/train.py`, gerando o
+   `.joblib` dentro do build. A imagem é reproduzível a partir do código e
+   não depende de nenhum arquivo da sua máquina. O estágio roda na
+   arquitetura de quem faz o build, porque o modelo não depende de CPU:
+   treinamos uma vez e copiamos para as duas imagens.
+2. **final:** usa `python:3.11-slim`, copia as dependências **antes** do
+   código (para aproveitar o cache de camadas), depois a API e o modelo, e
+   roda como usuário sem privilégios (uid 10001).
+
+Para construir arm64 numa máquina x86 é preciso do emulador QEMU:
+`docker run --privileged --rm tonistiigi/binfmt --install arm64`.
+
+Os demais alvos (`k3d-up`, `deploy`, `destroy`)
 serão preenchidos nas próximas fases.
 
 ## Dados
@@ -126,7 +148,7 @@ Não usamos EKS. `make destroy` apagará tudo ao final (fase 9).
 - [x] Fase 0: estrutura, README e Makefile
 - [x] Fase 1: treino do modelo
 - [x] Fase 2: API FastAPI
-- [ ] Fase 3: Docker
+- [x] Fase 3: Docker
 - [ ] Fase 4: Kubernetes local (k3d + Helm)
 - [ ] Fase 5: Terraform (EC2 + k3s)
 - [ ] Fase 6: deploy na EC2

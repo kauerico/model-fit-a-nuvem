@@ -1,0 +1,13 @@
+# Só o necessário vai para o contexto do build
+.git
+.github
+.venv
+.pytest_cache
+**/__pycache__
+model/data
+model/artifacts
+tests
+helm
+terraform
+docs
+*.md
