@@ -49,9 +49,30 @@ Pré-requisitos locais: `make`, Docker e [uv](https://docs.astral.sh/uv/)
 make          # lista os alvos
 make train    # baixa o corpus e treina o modelo (~10 s)
 make test     # cria o .venv com Python 3.11 e roda os testes
+make run      # sobe a API em http://localhost:8000 (docs em /docs)
 ```
 
-Os demais alvos (`run`, `build`, `k3d-up`, `deploy`, `destroy`)
+Em outro terminal:
+
+```bash
+curl localhost:8000/health
+curl localhost:8000/predict -H 'Content-Type: application/json' \
+     -d '{"texto": "URGENTE: compartilhe antes que apaguem!"}'
+```
+
+## API
+
+| Rota            | O que faz                                                       |
+|-----------------|-----------------------------------------------------------------|
+| `POST /predict` | recebe `{"texto": "..."}` (de 1 a 10.000 caracteres) e devolve `classe`, `confianca`, `probabilidades`, `versao_modelo` e um `aviso` |
+| `GET /health`   | `{"status": "ok", ...}` quando o modelo está carregado           |
+| `GET /docs`     | documentação interativa gerada pelo FastAPI                      |
+
+Entrada inválida (texto ausente, vazio, só espaços ou longo demais)
+recebe HTTP 422. O modelo é carregado uma única vez, quando a API sobe.
+Se o arquivo não existir, a API não inicia.
+
+Os demais alvos (`build`, `k3d-up`, `deploy`, `destroy`)
 serão preenchidos nas próximas fases.
 
 ## Dados
@@ -104,7 +125,7 @@ Não usamos EKS. `make destroy` apagará tudo ao final (fase 9).
 
 - [x] Fase 0: estrutura, README e Makefile
 - [x] Fase 1: treino do modelo
-- [ ] Fase 2: API FastAPI
+- [x] Fase 2: API FastAPI
 - [ ] Fase 3: Docker
 - [ ] Fase 4: Kubernetes local (k3d + Helm)
 - [ ] Fase 5: Terraform (EC2 + k3s)

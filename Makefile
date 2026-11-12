@@ -36,8 +36,8 @@ train: venv ## Fase 1: treina o modelo e salva o .joblib
 test: venv ## Roda os testes com pytest
 	$(PY) -m pytest -q
 
-run: venv ## Fase 2: sobe a API localmente
-	@echo "TODO (fase 2): uvicorn app.main:app"
+run: venv ## Sobe a API em http://localhost:8000 (docs em /docs)
+	$(PY) -m uvicorn app.main:app --reload --port 8000
 
 build: ## Fase 3: constrói a imagem Docker
 	@echo "TODO (fase 3): docker build -t $(IMAGE):$(TAG) ."
