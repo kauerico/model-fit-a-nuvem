@@ -5,10 +5,9 @@ PYTHON_VERSION := 3.11
 VENV   := .venv
 PY     := $(VENV)/bin/python
 
-# Imagem no GitHub Container Registry. Sobrescreva com:
-#   make build IMAGE_OWNER=seu-usuario
-IMAGE_OWNER ?= OWNER
-IMAGE       ?= ghcr.io/$(IMAGE_OWNER)/fake-news
+# Imagem no GitHub Container Registry (mesmo nome do repositório).
+IMAGE_OWNER ?= kauerico
+IMAGE       ?= ghcr.io/$(IMAGE_OWNER)/model-fit-a-nuvem
 TAG         ?= dev
 
 .DEFAULT_GOAL := help
