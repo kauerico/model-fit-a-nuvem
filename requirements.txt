@@ -1,0 +1,2 @@
+# Versões fixadas na fase 1 (treino) e fase 2 (API).
+pytest==8.3.3
