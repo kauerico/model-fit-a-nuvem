@@ -8,10 +8,10 @@ terraform {
     }
   }
 
-  # Estado no S3, com lock nativo do S3 (o CI começa do zero a cada execução,
-  # então o estado não pode ficar no runner). O nome do bucket vem de fora:
-  #   terraform init -backend-config="bucket=$TF_STATE_BUCKET"
+  # Estado no S3 (bucket criado no Console, com versionamento) e lock nativo
+  # do S3: o estado não fica preso a uma máquina só.
   backend "s3" {
+    bucket       = "fake-news-tfstate-kaue"
     key          = "model-fit-a-nuvem/terraform.tfstate"
     region       = "us-east-2"
     encrypt      = true
@@ -19,8 +19,7 @@ terraform {
   }
 }
 
-# Credenciais: no CI, as do usuário IAM criado no Console (GitHub Secrets);
-# na sua máquina, as do `aws login`.
+# Credenciais: as do `aws login` na sua máquina (perfil default).
 provider "aws" {
   region = var.region
 

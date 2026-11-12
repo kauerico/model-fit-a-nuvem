@@ -20,7 +20,7 @@ read -r INSTANCE_ID PUBLIC_IP < <(aws ec2 describe-instances --region "$AWS_REGI
   --filters Name=tag:Name,Values=fake-news-k3s Name=instance-state-name,Values=pending,running \
   --query 'Reservations[0].Instances[0].[InstanceId,PublicIpAddress]' --output text)
 if [ "$INSTANCE_ID" = "None" ]; then
-  echo "Nenhuma EC2 da demo ligada (rode o workflow infra com 'up')." >&2
+  echo "Nenhuma EC2 da demo ligada (suba a infra com: make tf-plan && make tf-apply)." >&2
   exit 3
 fi
 

@@ -1,7 +1,7 @@
 # CI/CD: testar -> construir e publicar a imagem -> implantar na EC2 -> verificar
 # (e desfazer o deploy se a verificação falhar).
 #
-# O deploy só acontece se a infraestrutura estiver no ar (workflow "infra" com up);
+# O deploy só acontece se a EC2 estiver no ar (criada com `make tf-apply`);
 # com ela desligada, o job apenas avisa e termina com sucesso.
 # Secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (usuário IAM criado no Console)
 name: ci
@@ -66,7 +66,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    concurrency: infra # não implanta enquanto o workflow infra estiver rodando
+    concurrency: deploy-aws # um deploy por vez
     steps:
       - uses: actions/checkout@v7
       - uses: aws-actions/configure-aws-credentials@v6
@@ -82,8 +82,12 @@ jobs:
             echo "up=true" >> "$GITHUB_OUTPUT"
           else
             echo "up=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Infra desligada: nada para implantar (rode o workflow infra com up)."
+            echo "::notice::Infra desligada: nada para implantar (rode make tf-apply)."
           fi
+
+      - name: Esperar o k3s ficar pronto (rápido se a EC2 já estiver no ar)
+        if: steps.ec2.outputs.up == 'true'
+        run: scripts/ssm-deploy.sh wait
 
       - name: helm upgrade na EC2 (via SSM)
         if: steps.ec2.outputs.up == 'true'

@@ -65,15 +65,14 @@ AWS_PROFILE ?= default
 AWS_REGION  ?= us-east-2
 export AWS_PROFILE AWS_REGION
 
-# O caminho principal é o GitHub Actions (workflow "infra": up/down).
-# Estes alvos fazem o mesmo da sua máquina, com as credenciais do `aws login`.
-TF_STATE_BUCKET ?= $(error defina TF_STATE_BUCKET=<bucket S3 do estado>)
+# A infra sobe da sua máquina (credenciais do `aws login`); o GitHub Actions
+# só implanta a app na EC2 que já existir.
 
 # Tag da imagem no GHCR = SHA do commit (é o que o CI publica)
 DEPLOY_TAG ?= $(shell git rev-parse HEAD)
 
-tf-init: ## Inicializa o Terraform com o estado no S3 (TF_STATE_BUCKET=...)
-	$(TF) init -backend-config="bucket=$(TF_STATE_BUCKET)"
+tf-init: ## Inicializa o Terraform (estado no bucket S3)
+	$(TF) init
 
 tf-plan: ## Mostra o que o Terraform vai criar/mudar (não gasta nada)
 	$(TF) plan -out=tfplan
