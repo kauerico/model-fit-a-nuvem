@@ -1,0 +1,6 @@
+apiVersion: v2
+name: fake-news
+description: API do detector de notícias falsas (demo "Do model.fit() à Nuvem")
+type: application
+version: 0.1.0      # versão do chart
+appVersion: "1.0.0" # versão do modelo/API

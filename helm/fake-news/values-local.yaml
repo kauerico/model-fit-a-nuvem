@@ -1,0 +1,4 @@
+# k3d na sua máquina: imagem construída localmente (make build + k3d image import)
+image:
+  tag: dev
+  pullPolicy: Never

@@ -1,0 +1,7 @@
+# EC2 com k3s: imagem do GHCR e Service exposto numa porta fixa do nó.
+# O security group do Terraform libera só esta porta (nunca a 6443).
+image:
+  pullPolicy: IfNotPresent
+service:
+  type: NodePort
+  nodePort: 30080

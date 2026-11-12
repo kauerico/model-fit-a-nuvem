@@ -1,0 +1,16 @@
+#!/bin/bash
+# Roda no primeiro boot da EC2. Log: /var/log/cloud-init-output.log
+set -euxo pipefail
+
+# k3s: Kubernetes leve num binário só. Desligamos o Traefik e o ServiceLB
+# porque expomos a API por NodePort (menos memória numa máquina de 2 GB).
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - \
+  --disable traefik --disable servicelb
+
+# Helm, usado pelo deploy (via SSM)
+curl -sfL "https://get.helm.sh/helm-${helm_version}-linux-${arch}.tar.gz" | tar xz -C /tmp
+install -m 0755 "/tmp/linux-${arch}/helm" /usr/local/bin/helm
+
+# Espera o nó ficar pronto
+until k3s kubectl get nodes | grep -q ' Ready'; do sleep 5; done
+echo "k3s pronto"

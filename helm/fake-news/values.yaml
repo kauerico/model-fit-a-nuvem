@@ -1,0 +1,24 @@
+# Valores padrão. Cada ambiente sobrescreve o que precisa:
+#   values-local.yaml (k3d) e values-aws.yaml (EC2 com k3s)
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/kauerico/model-fit-a-nuvem
+  tag: latest          # o CI troca pelo SHA do commit (--set image.tag=...)
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80             # porta do Service dentro do cluster
+  targetPort: 8000     # porta do uvicorn no contêiner
+  nodePort: null       # usado só quando type=NodePort
+
+# Medido: cada pod usa ~120 MiB com o modelo carregado
+resources:
+  requests:
+    cpu: 50m
+    memory: 160Mi
+  limits:
+    cpu: 500m
+    memory: 320Mi
