@@ -4,21 +4,10 @@ variable "region" {
   default     = "us-east-2"
 }
 
-variable "aws_profile" {
-  description = "Perfil do AWS CLI (o `aws login` grava no perfil default)"
-  type        = string
-  default     = "default"
-}
-
 variable "instance_type" {
   description = "Tipo da EC2. t4g = Graviton (arm64); t3 = Intel (amd64)"
   type        = string
   default     = "t4g.small"
-}
-
-variable "my_ip_cidr" {
-  description = "Seu IP público em CIDR (ex.: 203.0.113.10/32). Único IP com SSH"
-  type        = string
 }
 
 variable "app_cidr" {
@@ -33,10 +22,18 @@ variable "node_port" {
   default     = 30080
 }
 
-variable "ssh_public_key_path" {
-  description = "Chave pública SSH instalada na EC2"
+# SSH é opcional: a demo não precisa dele (deploy via SSM, API pela NodePort).
+# Para usar kubectl da sua máquina, preencha os dois.
+variable "ssh_cidr" {
+  description = "IP com acesso SSH, em CIDR (ex.: 203.0.113.10/32). Vazio = sem SSH"
   type        = string
-  default     = "~/.ssh/id_ed25519.pub"
+  default     = ""
+}
+
+variable "ssh_public_key" {
+  description = "Conteúdo da chave pública SSH. Vazio = sem key pair"
+  type        = string
+  default     = ""
 }
 
 variable "k3s_version" {
@@ -51,20 +48,13 @@ variable "helm_version" {
   default     = "v4.3.1"
 }
 
-variable "github_repo" {
-  description = "Repositório (dono/nome) que recebe os Secrets de deploy"
-  type        = string
-  default     = "kauerico/model-fit-a-nuvem"
-}
-
 variable "budget_limit_usd" {
   description = "Limite mensal do alerta de custo (US$)"
   type        = string
-  default     = "15"
+  default     = "5"
 }
 
 variable "budget_email" {
   description = "E-mail que recebe os alertas do AWS Budgets"
   type        = string
-  sensitive   = true
 }

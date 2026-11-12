@@ -1,22 +1,54 @@
 #!/usr/bin/env bash
-# Implanta (ou desfaz) o chart Helm na EC2 via AWS SSM, sem SSH e sem expor
-# a porta 6443. Usado igualmente pelo `make` e pelo GitHub Actions.
+# Fala com a EC2 da demo via AWS SSM: sem SSH e sem expor a porta 6443.
+# Usado igualmente pelo `make` e pelo GitHub Actions.
 #
-#   scripts/ssm-deploy.sh deploy <tag-da-imagem>
-#   scripts/ssm-deploy.sh rollback
+#   scripts/ssm-deploy.sh info              # imprime instance_id e api_url
+#   scripts/ssm-deploy.sh wait              # espera o k3s ficar pronto
+#   scripts/ssm-deploy.sh deploy <tag>      # helm upgrade com a imagem <tag>
+#   scripts/ssm-deploy.sh rollback          # volta para a versão anterior
 #
-# Precisa de: INSTANCE_ID e AWS_REGION (e credenciais AWS válidas).
+# Precisa de AWS_REGION e credenciais AWS. A instância é encontrada pela tag
+# Name=fake-news-k3s (criada pelo Terraform).
 set -euo pipefail
 
-ACTION=${1:?uso: $0 deploy <tag> | rollback}
+ACTION=${1:?uso: $0 info | wait | deploy <tag> | rollback}
 TAG=${2:-}
-: "${INSTANCE_ID:?defina INSTANCE_ID}" "${AWS_REGION:?defina AWS_REGION}"
+: "${AWS_REGION:?defina AWS_REGION}"
 cd "$(dirname "$0")/.."
+
+read -r INSTANCE_ID PUBLIC_IP < <(aws ec2 describe-instances --region "$AWS_REGION" \
+  --filters Name=tag:Name,Values=fake-news-k3s Name=instance-state-name,Values=pending,running \
+  --query 'Reservations[0].Instances[0].[InstanceId,PublicIpAddress]' --output text)
+if [ "$INSTANCE_ID" = "None" ]; then
+  echo "Nenhuma EC2 da demo ligada (rode o workflow infra com 'up')." >&2
+  exit 3
+fi
+
+if [ "$ACTION" = info ]; then
+  echo "instance_id=$INSTANCE_ID"
+  echo "api_url=http://$PUBLIC_IP:30080"
+  exit 0
+fi
 
 PRE='set -euo pipefail; export KUBECONFIG=/etc/rancher/k3s/k3s.yaml'
 POS='kubectl get pods -l app.kubernetes.io/name=fake-news -o wide'
 
 case "$ACTION" in
+  wait)
+    # 1) o agente do SSM da EC2 precisa estar "Online" para receber comandos
+    echo "Esperando o agente do SSM em $INSTANCE_ID ..."
+    for _ in $(seq 60); do
+      PING=$(aws ssm describe-instance-information --region "$AWS_REGION" \
+        --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+        --query 'InstanceInformationList[0].PingStatus' --output text)
+      [ "$PING" = Online ] && break
+      sleep 10
+    done
+    [ "$PING" = Online ] || { echo "SSM não ficou Online" >&2; exit 1; }
+    # 2) o user_data (instalação do k3s e do Helm) precisa ter terminado
+    SCRIPT="cloud-init status --wait || true
+k3s kubectl get nodes -o wide
+helm version --short" ;;
   deploy)
     : "${TAG:?informe a tag da imagem}"
     # O chart viaja dentro do próprio comando (tar + base64, poucos KB)

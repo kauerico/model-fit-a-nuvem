@@ -8,13 +8,21 @@ terraform {
     }
   }
 
-  # Estado local (terraform.tfstate, ignorado pelo git). Num time de verdade,
-  # use um backend remoto (S3) para o estado não ficar só numa máquina.
+  # Estado no S3, com lock nativo do S3 (o CI começa do zero a cada execução,
+  # então o estado não pode ficar no runner). O nome do bucket vem de fora:
+  #   terraform init -backend-config="bucket=$TF_STATE_BUCKET"
+  backend "s3" {
+    key          = "model-fit-a-nuvem/terraform.tfstate"
+    region       = "us-east-2"
+    encrypt      = true
+    use_lockfile = true
+  }
 }
 
+# Credenciais: no CI, as do usuário IAM criado no Console (GitHub Secrets);
+# na sua máquina, as do `aws login`.
 provider "aws" {
-  region  = var.region
-  profile = var.aws_profile
+  region = var.region
 
   default_tags {
     tags = {

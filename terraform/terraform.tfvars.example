@@ -1,8 +1,4 @@
-# Copie para terraform.tfvars (ignorado pelo git) e preencha.
-my_ip_cidr   = "203.0.113.10/32" # curl -s https://checkip.amazonaws.com
-budget_email = "voce@exemplo.com"
-
-# Opcionais (valores padrão em variables.tf)
-# region        = "us-east-2"
-# instance_type = "t4g.small"
-# aws_profile   = "default"
+# Opcional. Copie para terraform.tfvars (ignorado pelo git) só se quiser SSH.
+# ssh_cidr       = "203.0.113.10/32" # curl -s https://checkip.amazonaws.com
+# ssh_public_key = "ssh-ed25519 AAAA... voce@maquina"
+# instance_type  = "t4g.small"

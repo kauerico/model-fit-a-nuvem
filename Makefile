@@ -12,7 +12,7 @@ TAG         ?= dev
 
 .DEFAULT_GOAL := help
 .PHONY: help venv train test run build docker-run buildx k3d-up deploy \
-        tf-init tf-plan tf-apply aws-deploy aws-rollback destroy clean
+        tf-init tf-plan tf-apply aws-info aws-deploy aws-rollback destroy clean
 
 help: ## Lista os alvos disponíveis
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -65,11 +65,15 @@ AWS_PROFILE ?= default
 AWS_REGION  ?= us-east-2
 export AWS_PROFILE AWS_REGION
 
+# O caminho principal é o GitHub Actions (workflow "infra": up/down).
+# Estes alvos fazem o mesmo da sua máquina, com as credenciais do `aws login`.
+TF_STATE_BUCKET ?= $(error defina TF_STATE_BUCKET=<bucket S3 do estado>)
+
 # Tag da imagem no GHCR = SHA do commit (é o que o CI publica)
 DEPLOY_TAG ?= $(shell git rev-parse HEAD)
 
-tf-init: ## Inicializa o Terraform (baixa o provider da AWS)
-	$(TF) init
+tf-init: ## Inicializa o Terraform com o estado no S3 (TF_STATE_BUCKET=...)
+	$(TF) init -backend-config="bucket=$(TF_STATE_BUCKET)"
 
 tf-plan: ## Mostra o que o Terraform vai criar/mudar (não gasta nada)
 	$(TF) plan -out=tfplan
@@ -77,11 +81,14 @@ tf-plan: ## Mostra o que o Terraform vai criar/mudar (não gasta nada)
 tf-apply: ## Aplica o último plano (cria recursos que custam dinheiro)
 	$(TF) apply tfplan
 
+aws-info: ## Mostra o ID e a URL da EC2 da demo
+	scripts/ssm-deploy.sh info
+
 aws-deploy: ## Implanta DEPLOY_TAG (padrão: commit atual) na EC2 via SSM
-	INSTANCE_ID=$$($(TF) output -raw instance_id) scripts/ssm-deploy.sh deploy $(DEPLOY_TAG)
+	scripts/ssm-deploy.sh deploy $(DEPLOY_TAG)
 
 aws-rollback: ## Volta para a versão anterior do Helm na EC2
-	INSTANCE_ID=$$($(TF) output -raw instance_id) scripts/ssm-deploy.sh rollback
+	scripts/ssm-deploy.sh rollback
 
 destroy: ## Apaga TUDO na AWS (o Terraform pede confirmação)
 	$(TF) destroy

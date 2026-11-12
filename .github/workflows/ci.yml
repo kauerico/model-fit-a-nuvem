@@ -1,9 +1,9 @@
 # CI/CD: testar -> construir e publicar a imagem -> implantar na EC2 -> verificar
 # (e desfazer o deploy se a verificação falhar).
 #
-# GitHub Secrets (saídas do Terraform): AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
-#                                       EC2_INSTANCE_ID, API_URL
-# GitHub Variable:  DEPLOY_ENABLED = true  (desligue após o `make destroy`)
+# O deploy só acontece se a infraestrutura estiver no ar (workflow "infra" com up);
+# com ela desligada, o job apenas avisa e termina com sucesso.
+# Secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (usuário IAM criado no Console)
 name: ci
 
 on:
@@ -64,38 +64,35 @@ jobs:
 
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    concurrency: deploy-aws # um deploy por vez
-    permissions:
-      contents: read
-    env:
-      INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+    concurrency: infra # não implanta enquanto o workflow infra estiver rodando
     steps:
       - uses: actions/checkout@v7
       - uses: aws-actions/configure-aws-credentials@v6
         with:
-          # Usuário IAM que só pode mandar comandos SSM para a EC2 da demo
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: A EC2 da demo está ligada?
+        id: ec2
+        run: |
+          if scripts/ssm-deploy.sh info >> "$GITHUB_OUTPUT"; then
+            echo "up=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "up=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Infra desligada: nada para implantar (rode o workflow infra com up)."
+          fi
+
       - name: helm upgrade na EC2 (via SSM)
+        if: steps.ec2.outputs.up == 'true'
         run: scripts/ssm-deploy.sh deploy ${{ github.sha }}
 
       - name: Verificar /health e /predict pelo IP público
-        id: verify
-        run: |
-          for i in $(seq 12); do
-            if curl -sf "${{ secrets.API_URL }}/health"; then
-              curl -sf "${{ secrets.API_URL }}/predict" -H 'Content-Type: application/json' \
-                -d '{"texto": "Teste automático do pipeline de CI/CD."}'
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "::error::API não respondeu após o deploy"; exit 1
+        if: steps.ec2.outputs.up == 'true'
+        run: scripts/verify.sh "${{ steps.ec2.outputs.api_url }}"
 
       - name: Rollback se o deploy ou a verificação falharem
-        if: failure()
+        if: failure() && steps.ec2.outputs.up == 'true'
         run: scripts/ssm-deploy.sh rollback

@@ -18,14 +18,15 @@ data "aws_vpc" "default" {
 # ---------- Rede: só SSH (do seu IP) e a NodePort da API ----------
 resource "aws_security_group" "k3s" {
   name        = "fake-news-k3s"
-  description = "SSH do apresentador e NodePort da API. A 6443 fica fechada."
+  description = "NodePort da API (e SSH opcional). A 6443 fica fechada."
   vpc_id      = data.aws_vpc.default.id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "ssh" {
+  count             = var.ssh_cidr == "" ? 0 : 1
   security_group_id = aws_security_group.k3s.id
-  description       = "SSH so do meu IP"
-  cidr_ipv4         = var.my_ip_cidr
+  description       = "SSH so do IP do apresentador"
+  cidr_ipv4         = var.ssh_cidr
   ip_protocol       = "tcp"
   from_port         = 22
   to_port           = 22
@@ -72,14 +73,15 @@ resource "aws_iam_instance_profile" "ec2" {
 
 # ---------- A instância ----------
 resource "aws_key_pair" "me" {
+  count      = var.ssh_public_key == "" ? 0 : 1
   key_name   = "fake-news"
-  public_key = file(pathexpand(var.ssh_public_key_path))
+  public_key = var.ssh_public_key
 }
 
 resource "aws_instance" "k3s" {
   ami                    = data.aws_ssm_parameter.ubuntu.value
   instance_type          = var.instance_type
-  key_name               = aws_key_pair.me.key_name
+  key_name               = one(aws_key_pair.me[*].key_name)
   vpc_security_group_ids = [aws_security_group.k3s.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
 
